@@ -14,6 +14,7 @@ const envSchema = z.object({
   S3_SECRET_KEY: z.string(),
   S3_BUCKET: z.string().default("news-images"),
   JWT_SECRET: z.string().min(16),
+  USER_SERVICE_URL: z.string().url().default("http://localhost:3000"),
   NEXT_PUBLIC_API_BASE_URL: z.string().url().optional(),
   NEXT_PUBLIC_SSE_URL: z.string().url().optional()
 });
@@ -30,4 +31,3 @@ export function getConfig(overrides: Partial<NodeJS.ProcessEnv> = {}): AppConfig
 export function parseKafkaBrokers(config: AppConfig): string[] {
   return config.KAFKA_BROKERS.split(",").map((value) => value.trim());
 }
-

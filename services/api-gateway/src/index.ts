@@ -16,6 +16,7 @@ const db = createDb(config.POSTGRES_URL);
 const redis = createRedisClient();
 const search = createSearchClient();
 const userServiceBreaker = new CircuitBreaker(4, 15_000);
+const port = Number(process.env.PORT ?? "3001");
 
 await app.register(cors, { origin: true });
 await app.register(helmet);
@@ -121,7 +122,7 @@ app.post("/bookmark", async (request, reply) => {
   }).parse(request.body);
 
   const response = await userServiceBreaker.run(() =>
-    fetch("http://user-service:3000/bookmark", {
+    fetch(`${config.USER_SERVICE_URL}/bookmark`, {
       method: "POST",
       headers: {
         "content-type": "application/json"
@@ -191,5 +192,5 @@ app.setErrorHandler(async (error, _request, reply) => {
 
 await app.listen({
   host: "0.0.0.0",
-  port: 3001
+  port
 });

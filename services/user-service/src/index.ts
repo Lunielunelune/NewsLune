@@ -11,6 +11,7 @@ const config = getConfig();
 const logger = createLogger("user-service");
 const app = Fastify({ logger });
 const db = createDb(config.POSTGRES_URL);
+const port = Number(process.env.PORT ?? "3000");
 
 await app.register(cors, { origin: true });
 await app.register(helmet);
@@ -62,6 +63,5 @@ app.post("/bookmark", async (request) => {
 
 await app.listen({
   host: "0.0.0.0",
-  port: 3000
+  port
 });
-

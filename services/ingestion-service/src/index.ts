@@ -10,6 +10,7 @@ const { logger } = createServiceContext("ingestion-service");
 const app = Fastify({ logger });
 const producer = await createProducer("ingestion-service");
 const feedBreaker = new CircuitBreaker(3, 60_000);
+const port = Number(process.env.PORT ?? "3000");
 
 const feeds = [
   "https://feeds.bbci.co.uk/news/rss.xml",
@@ -78,5 +79,5 @@ await feedBreaker.run(() => pollFeeds());
 
 await app.listen({
   host: "0.0.0.0",
-  port: 3000
+  port
 });

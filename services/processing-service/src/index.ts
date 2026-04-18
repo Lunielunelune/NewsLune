@@ -12,6 +12,7 @@ const { logger } = createServiceContext("processing-service");
 const app = Fastify({ logger });
 const consumer = await createConsumer("processing-service", "processing-service");
 const producer = await createProducer("processing-service");
+const port = Number(process.env.PORT ?? "3000");
 
 await app.register(helmet);
 
@@ -76,5 +77,5 @@ consumer.run({
 
 await app.listen({
   host: "0.0.0.0",
-  port: 3000
+  port
 });

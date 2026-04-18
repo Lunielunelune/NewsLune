@@ -38,6 +38,7 @@ Production-oriented distributed news platform built as a TypeScript monorepo wit
 - Push images to your registry and update image references under `infra/k8s/base/apps`.
 - Apply manifests with `kubectl apply -k infra/k8s/overlays/local`.
 - Configure managed PostgreSQL, Redis, Kafka, Elasticsearch, object storage, TLS, and CDN in production.
+- For Railway, use the per-service `railway.json` files and the setup guide in `docs/railway.md`.
 
 ## Operational Notes
 

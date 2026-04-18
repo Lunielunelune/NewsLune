@@ -12,6 +12,7 @@ const producer = await createProducer("ranking-service");
 const db = createDb(config.POSTGRES_URL);
 const redis = createRedisClient();
 const search = createSearchClient();
+const port = Number(process.env.PORT ?? "3000");
 
 await app.register(helmet);
 
@@ -124,5 +125,5 @@ consumer.run({
 
 await app.listen({
   host: "0.0.0.0",
-  port: 3000
+  port
 });
