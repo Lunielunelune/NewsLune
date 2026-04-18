@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: news-platform-config
+  namespace: news-platform
+data:
+  NODE_ENV: production
+  LOG_LEVEL: info
+  KAFKA_BROKERS: kafka:9092
+  KAFKA_CLIENT_ID: news-platform
+  REDIS_URL: redis://redis:6379
+  POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/news
+  ELASTICSEARCH_NODE: http://elasticsearch:9200
+  S3_ENDPOINT: http://minio:9000
+  S3_REGION: us-east-1
+  S3_BUCKET: news-images
+  NEXT_PUBLIC_API_BASE_URL: https://api.aperture-news.example.com
+  NEXT_PUBLIC_SSE_URL: https://api.aperture-news.example.com/news/stream
+

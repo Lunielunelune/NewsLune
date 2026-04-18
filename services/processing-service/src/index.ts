@@ -1,0 +1,80 @@
+import helmet from "@fastify/helmet";
+import {
+  processedNewsEventSchema,
+  rawNewsEventSchema,
+  topics
+} from "@news/contracts";
+import { createConsumer, createProducer, createServiceContext } from "@news/platform";
+import Fastify from "fastify";
+import { createHash } from "node:crypto";
+
+const { logger } = createServiceContext("processing-service");
+const app = Fastify({ logger });
+const consumer = await createConsumer("processing-service", "processing-service");
+const producer = await createProducer("processing-service");
+
+await app.register(helmet);
+
+app.get("/health", async () => ({
+  status: "ok",
+  service: "processing-service"
+}));
+
+function normalizeText(text?: string) {
+  return (text ?? "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+await consumer.subscribe({
+  topic: topics.rawNews,
+  fromBeginning: false
+});
+
+consumer.run({
+  eachMessage: async ({ message }) => {
+    if (!message.value) {
+      return;
+    }
+
+    const event = rawNewsEventSchema.parse(JSON.parse(message.value.toString()));
+    try {
+      const normalizedTitle = normalizeText(event.title);
+      const normalizedContent = normalizeText(event.content || event.description);
+      const processed = processedNewsEventSchema.parse({
+        ...event,
+        normalizedTitle,
+        normalizedContent,
+        urlHash: createHash("sha256").update(event.url).digest("hex"),
+        language: "en"
+      });
+
+      await producer.send({
+        topic: topics.processedNews,
+        messages: [
+          {
+            key: processed.urlHash,
+            value: JSON.stringify(processed)
+          }
+        ]
+      });
+    } catch (error) {
+      logger.error({ error }, "Failed to process article");
+      await producer.send({
+        topic: topics.processingDlq,
+        messages: [
+          {
+            key: message.key?.toString(),
+            value: message.value.toString()
+          }
+        ]
+      });
+    }
+  }
+});
+
+await app.listen({
+  host: "0.0.0.0",
+  port: 3000
+});

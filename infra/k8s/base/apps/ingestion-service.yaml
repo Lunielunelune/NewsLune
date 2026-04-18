@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingestion-service
+  namespace: news-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ingestion-service
+  template:
+    metadata:
+      labels:
+        app: ingestion-service
+    spec:
+      containers:
+        - name: ingestion-service
+          image: ghcr.io/example/news/ingestion-service:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: news-platform-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingestion-service
+  namespace: news-platform
+spec:
+  selector:
+    app: ingestion-service
+  ports:
+    - port: 3000
+      targetPort: 3000
+

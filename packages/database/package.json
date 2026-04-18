@@ -1,0 +1,25 @@
+{
+  "name": "@news/database",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -w -p tsconfig.json",
+    "lint": "eslint src --ext .ts",
+    "test": "node --test",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.39.1",
+    "pg": "^8.13.3"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.30.4"
+  }
+}
+

@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "news-platform"
+    static_configs:
+      - targets:
+          - api-gateway:3001
+          - ingestion-service:3000
+          - processing-service:3000
+          - deduplication-service:3000
+          - enrichment-service:3000
+          - ranking-service:3000
+          - user-service:3000
+          - notification-service:3000
+

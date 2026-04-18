@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": [
+      "ES2023",
+      "DOM"
+    ],
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@news/config": [
+        "packages/config/src"
+      ],
+      "@news/contracts": [
+        "packages/contracts/src"
+      ],
+      "@news/database": [
+        "packages/database/src"
+      ],
+      "@news/observability": [
+        "packages/observability/src"
+      ],
+      "@news/platform": [
+        "packages/platform/src"
+      ],
+      "@news/ui/*": [
+        "packages/ui/src/*"
+      ]
+    }
+  }
+}

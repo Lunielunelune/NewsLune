@@ -1,0 +1,21 @@
+{
+  "name": "@news/deduplication-service",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "lint": "eslint src --ext .ts",
+    "start": "node dist/index.js",
+    "test": "node --test",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@fastify/helmet": "^13.0.1",
+    "@news/contracts": "workspace:*",
+    "@news/platform": "workspace:*",
+    "fastify": "^5.2.1",
+    "tsx": "^4.19.2"
+  }
+}

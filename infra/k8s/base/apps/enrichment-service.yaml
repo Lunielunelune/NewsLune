@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enrichment-service
+  namespace: news-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: enrichment-service
+  template:
+    metadata:
+      labels:
+        app: enrichment-service
+    spec:
+      containers:
+        - name: enrichment-service
+          image: ghcr.io/example/news/enrichment-service:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: news-platform-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enrichment-service
+  namespace: news-platform
+spec:
+  selector:
+    app: enrichment-service
+  ports:
+    - port: 3000
+      targetPort: 3000
+

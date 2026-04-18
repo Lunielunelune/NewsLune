@@ -1,0 +1,11 @@
+resources:
+  - ../../base
+
+images:
+  - name: ghcr.io/example/news/api-gateway
+    newName: local/news-api-gateway
+    newTag: latest
+  - name: ghcr.io/example/news/web
+    newName: local/news-web
+    newTag: latest
+

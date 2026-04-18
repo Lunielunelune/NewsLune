@@ -1,0 +1,14 @@
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - apps/api-gateway.yaml
+  - apps/ingestion-service.yaml
+  - apps/processing-service.yaml
+  - apps/deduplication-service.yaml
+  - apps/enrichment-service.yaml
+  - apps/ranking-service.yaml
+  - apps/user-service.yaml
+  - apps/notification-service.yaml
+  - apps/web.yaml
+  - ingress.yaml
+

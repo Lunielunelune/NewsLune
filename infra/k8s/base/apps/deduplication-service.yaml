@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deduplication-service
+  namespace: news-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deduplication-service
+  template:
+    metadata:
+      labels:
+        app: deduplication-service
+    spec:
+      containers:
+        - name: deduplication-service
+          image: ghcr.io/example/news/deduplication-service:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: news-platform-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deduplication-service
+  namespace: news-platform
+spec:
+  selector:
+    app: deduplication-service
+  ports:
+    - port: 3000
+      targetPort: 3000
+

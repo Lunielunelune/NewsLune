@@ -1,0 +1,98 @@
+import helmet from "@fastify/helmet";
+import {
+  dedupedNewsEventSchema,
+  processedNewsEventSchema,
+  topics
+} from "@news/contracts";
+import { createConsumer, createProducer, createRedisClient, createServiceContext } from "@news/platform";
+import Fastify from "fastify";
+
+const { logger } = createServiceContext("deduplication-service");
+const app = Fastify({ logger });
+const consumer = await createConsumer("deduplication-service", "deduplication-service");
+const producer = await createProducer("deduplication-service");
+const redis = createRedisClient();
+
+await app.register(helmet);
+
+app.get("/health", async () => ({
+  status: "ok",
+  service: "deduplication-service"
+}));
+
+function similarity(a: string, b: string) {
+  const first = new Set(a.toLowerCase().split(/\W+/).filter(Boolean));
+  const second = new Set(b.toLowerCase().split(/\W+/).filter(Boolean));
+  const intersection = [...first].filter((token) => second.has(token)).length;
+  const union = new Set([...first, ...second]).size;
+  return union === 0 ? 0 : intersection / union;
+}
+
+await consumer.subscribe({
+  topic: topics.processedNews,
+  fromBeginning: false
+});
+
+consumer.run({
+  eachMessage: async ({ message }) => {
+    if (!message.value) {
+      return;
+    }
+
+    try {
+      const event = processedNewsEventSchema.parse(JSON.parse(message.value.toString()));
+      const existing = await redis.hgetall("dedupe:index");
+      let duplicate = false;
+      let similarityScore = 0;
+      let canonicalId = event.id;
+
+      for (const [candidateId, candidateTitle] of Object.entries(existing)) {
+        const score = similarity(event.normalizedTitle, candidateTitle);
+        if (score > 0.86) {
+          duplicate = true;
+          similarityScore = score;
+          canonicalId = candidateId;
+          break;
+        }
+      }
+
+      if (!duplicate) {
+        await redis.hset("dedupe:index", event.id, event.normalizedTitle);
+        similarityScore = 1;
+      }
+
+      const payload = dedupedNewsEventSchema.parse({
+        ...event,
+        duplicate,
+        similarityScore,
+        canonicalId
+      });
+
+      await producer.send({
+        topic: topics.dedupedNews,
+        messages: [
+          {
+            key: payload.canonicalId,
+            value: JSON.stringify(payload)
+          }
+        ]
+      });
+    } catch (error) {
+      logger.error({ error }, "Failed to deduplicate article");
+      await producer.send({
+        topic: topics.dedupeDlq,
+        messages: [
+          {
+            key: message.key?.toString(),
+            value: message.value.toString()
+          }
+        ]
+      });
+    }
+  }
+});
+
+await app.listen({
+  host: "0.0.0.0",
+  port: 3000
+});
