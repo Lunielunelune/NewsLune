@@ -1,6 +1,8 @@
 import pino from "pino";
 
-export function createLogger(name: string, level = process.env.LOG_LEVEL ?? "info") {
+export type AppLogger = pino.Logger;
+
+export function createLogger(name: string, level = process.env.LOG_LEVEL ?? "info"): AppLogger {
   return pino({
     name,
     level,
@@ -15,4 +17,3 @@ export function createLogger(name: string, level = process.env.LOG_LEVEL ?? "inf
         : undefined
   });
 }
-

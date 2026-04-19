@@ -1,6 +1,6 @@
 import { Client as ElasticsearchClient } from "@elastic/elasticsearch";
-import { getConfig, parseKafkaBrokers } from "@news/config";
-import { createLogger } from "@news/observability";
+import { AppConfig, getConfig, parseKafkaBrokers } from "@news/config";
+import { AppLogger, createLogger } from "@news/observability";
 import Redis from "ioredis";
 import { Consumer, Kafka, Producer } from "kafkajs";
 
@@ -65,7 +65,13 @@ export async function withRetries<T>(operation: () => Promise<T>, retries = 3, d
   throw lastError;
 }
 
-export function createServiceContext(serviceName: string) {
+export interface ServiceContext {
+  serviceName: string;
+  logger: AppLogger;
+  config: AppConfig;
+}
+
+export function createServiceContext(serviceName: string): ServiceContext {
   return {
     serviceName,
     logger: createLogger(serviceName),
