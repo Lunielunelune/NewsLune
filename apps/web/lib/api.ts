@@ -14,24 +14,40 @@ export interface Article {
 
 const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
 
+const emptyNewsResponse = {
+  items: [] as Article[],
+  nextCursor: null as string | null
+};
+
+const emptyCategoriesResponse = {
+  items: [] as Array<{ category: string; count: number }>
+};
+
 export async function getNews(category?: string) {
   const url = new URL("/news", baseUrl);
   if (category) {
     url.searchParams.set("category", category);
   }
 
-  const response = await fetch(url, { next: { revalidate: 30 } });
-  if (!response.ok) {
-    throw new Error("Failed to fetch news");
+  try {
+    const response = await fetch(url, { next: { revalidate: 30 } });
+    if (!response.ok) {
+      return emptyNewsResponse;
+    }
+    return response.json() as Promise<{ items: Article[]; nextCursor: string | null }>;
+  } catch {
+    return emptyNewsResponse;
   }
-  return response.json() as Promise<{ items: Article[]; nextCursor: string | null }>;
 }
 
 export async function getCategories() {
-  const response = await fetch(`${baseUrl}/categories`, { next: { revalidate: 60 } });
-  if (!response.ok) {
-    throw new Error("Failed to fetch categories");
+  try {
+    const response = await fetch(`${baseUrl}/categories`, { next: { revalidate: 60 } });
+    if (!response.ok) {
+      return emptyCategoriesResponse;
+    }
+    return response.json() as Promise<{ items: Array<{ category: string; count: number }> }>;
+  } catch {
+    return emptyCategoriesResponse;
   }
-  return response.json() as Promise<{ items: Array<{ category: string; count: number }> }>;
 }
-
