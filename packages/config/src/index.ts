@@ -3,15 +3,15 @@ import { z } from "zod";
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   LOG_LEVEL: z.string().default("info"),
-  KAFKA_BROKERS: z.string().default("localhost:9092"),
+  KAFKA_BROKERS: z.string().optional(),
   KAFKA_CLIENT_ID: z.string().default("news-platform"),
   REDIS_URL: z.string().url().default("redis://localhost:6379"),
   POSTGRES_URL: z.string().min(1),
-  ELASTICSEARCH_NODE: z.string().url(),
-  S3_ENDPOINT: z.string().url(),
+  ELASTICSEARCH_NODE: z.string().url().optional(),
+  S3_ENDPOINT: z.string().url().optional(),
   S3_REGION: z.string().default("us-east-1"),
-  S3_ACCESS_KEY: z.string(),
-  S3_SECRET_KEY: z.string(),
+  S3_ACCESS_KEY: z.string().optional(),
+  S3_SECRET_KEY: z.string().optional(),
   S3_BUCKET: z.string().default("news-images"),
   JWT_SECRET: z.string().min(16),
   USER_SERVICE_URL: z.string().url().default("http://localhost:3000"),
@@ -29,5 +29,5 @@ export function getConfig(overrides: Partial<NodeJS.ProcessEnv> = {}): AppConfig
 }
 
 export function parseKafkaBrokers(config: AppConfig): string[] {
-  return config.KAFKA_BROKERS.split(",").map((value) => value.trim());
+  return (config.KAFKA_BROKERS ?? "").split(",").map((value) => value.trim()).filter(Boolean);
 }

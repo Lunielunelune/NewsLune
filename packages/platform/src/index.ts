@@ -4,8 +4,19 @@ import { AppLogger, createLogger } from "@news/observability";
 import Redis from "ioredis";
 import { Consumer, Kafka, Producer } from "kafkajs";
 
+export function isKafkaConfigured(config = getConfig()) {
+  return parseKafkaBrokers(config).length > 0;
+}
+
+export function isSearchConfigured(config = getConfig()) {
+  return Boolean(config.ELASTICSEARCH_NODE);
+}
+
 export function createKafkaClient(serviceName: string) {
   const config = getConfig();
+  if (!isKafkaConfigured(config)) {
+    throw new Error(`Kafka is not configured for ${serviceName}`);
+  }
 
   return new Kafka({
     clientId: `${config.KAFKA_CLIENT_ID}-${serviceName}`,
@@ -34,6 +45,22 @@ export async function createConsumer(serviceName: string, groupId: string): Prom
   return consumer;
 }
 
+export async function createOptionalProducer(serviceName: string): Promise<Producer | null> {
+  if (!isKafkaConfigured()) {
+    return null;
+  }
+
+  return createProducer(serviceName);
+}
+
+export async function createOptionalConsumer(serviceName: string, groupId: string): Promise<Consumer | null> {
+  if (!isKafkaConfigured()) {
+    return null;
+  }
+
+  return createConsumer(serviceName, groupId);
+}
+
 export function createRedisClient() {
   return new Redis(getConfig().REDIS_URL, {
     maxRetriesPerRequest: 3,
@@ -42,9 +69,22 @@ export function createRedisClient() {
 }
 
 export function createSearchClient() {
+  const config = getConfig();
+  if (!config.ELASTICSEARCH_NODE) {
+    throw new Error("Elasticsearch is not configured");
+  }
+
   return new ElasticsearchClient({
-    node: getConfig().ELASTICSEARCH_NODE
+    node: config.ELASTICSEARCH_NODE
   });
+}
+
+export function createOptionalSearchClient() {
+  if (!isSearchConfigured()) {
+    return null;
+  }
+
+  return createSearchClient();
 }
 
 export async function withRetries<T>(operation: () => Promise<T>, retries = 3, delayMs = 500): Promise<T> {

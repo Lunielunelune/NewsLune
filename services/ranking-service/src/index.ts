@@ -1,24 +1,34 @@
 import helmet from "@fastify/helmet";
 import { enrichedNewsEventSchema, topics } from "@news/contracts";
 import { createDb, articles } from "@news/database";
-import { createConsumer, createProducer, createRedisClient, createSearchClient, createServiceContext } from "@news/platform";
+import {
+  createOptionalConsumer,
+  createOptionalProducer,
+  createOptionalSearchClient,
+  createRedisClient,
+  createServiceContext
+} from "@news/platform";
 import { eq } from "drizzle-orm";
 import Fastify from "fastify";
 
 const { logger, config } = createServiceContext("ranking-service");
 const app = Fastify({ logger });
-const consumer = await createConsumer("ranking-service", "ranking-service");
-const producer = await createProducer("ranking-service");
+const consumer = await createOptionalConsumer("ranking-service", "ranking-service");
+const producer = await createOptionalProducer("ranking-service");
 const db = createDb(config.POSTGRES_URL);
 const redis = createRedisClient();
-const search = createSearchClient();
+const search = createOptionalSearchClient();
 const port = Number(process.env.PORT ?? "3000");
 
 await app.register(helmet);
 
 app.get("/health", async () => ({
   status: "ok",
-  service: "ranking-service"
+  service: "ranking-service",
+  degraded: {
+    messaging: consumer === null || producer === null,
+    search: search === null
+  }
 }));
 
 function scoreSource(source: string) {
@@ -43,12 +53,13 @@ function calculateRankingScore(publishedAt: string, source: string) {
   };
 }
 
-await consumer.subscribe({
-  topic: topics.enrichedNews,
-  fromBeginning: false
-});
+if (consumer) {
+  await consumer.subscribe({
+    topic: topics.enrichedNews,
+    fromBeginning: false
+  });
 
-consumer.run({
+  consumer.run({
   eachMessage: async ({ message }) => {
     if (!message.value) {
       return;
@@ -82,46 +93,55 @@ consumer.run({
         articleId = created.id;
       }
 
-      await search.index({
-        index: "articles",
-        id: articleId,
-        document: {
-          ...event,
+      if (search) {
+        await search.index({
+          index: "articles",
           id: articleId,
-          rankingScore,
-          rankingFactors
-        }
-      });
+          document: {
+            ...event,
+            id: articleId,
+            rankingScore,
+            rankingFactors
+          }
+        });
+      }
 
       await redis.del("trending:news");
-      await producer.send({
-        topic: topics.notifications,
-        messages: [
-          {
-            key: event.canonicalId,
-            value: JSON.stringify({
-              id: articleId,
-              title: event.title,
-              category: event.category,
-              publishedAt: event.publishedAt
-            })
-          }
-        ]
-      });
+      if (producer) {
+        await producer.send({
+          topic: topics.notifications,
+          messages: [
+            {
+              key: event.canonicalId,
+              value: JSON.stringify({
+                id: articleId,
+                title: event.title,
+                category: event.category,
+                publishedAt: event.publishedAt
+              })
+            }
+          ]
+        });
+      }
     } catch (error) {
       logger.error({ error }, "Failed to rank article");
-      await producer.send({
-        topic: topics.rankingDlq,
-        messages: [
-          {
-            key: message.key?.toString(),
-            value: message.value.toString()
-          }
-        ]
-      });
+      if (producer) {
+        await producer.send({
+          topic: topics.rankingDlq,
+          messages: [
+            {
+              key: message.key?.toString(),
+              value: message.value.toString()
+            }
+          ]
+        });
+      }
     }
   }
-});
+  });
+} else {
+  logger.warn("Kafka is not configured; ranking pipeline is disabled");
+}
 
 await app.listen({
   host: "0.0.0.0",

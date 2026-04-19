@@ -4,13 +4,13 @@ import {
   processedNewsEventSchema,
   topics
 } from "@news/contracts";
-import { createConsumer, createProducer, createRedisClient, createServiceContext } from "@news/platform";
+import { createOptionalConsumer, createOptionalProducer, createRedisClient, createServiceContext } from "@news/platform";
 import Fastify from "fastify";
 
 const { logger } = createServiceContext("deduplication-service");
 const app = Fastify({ logger });
-const consumer = await createConsumer("deduplication-service", "deduplication-service");
-const producer = await createProducer("deduplication-service");
+const consumer = await createOptionalConsumer("deduplication-service", "deduplication-service");
+const producer = await createOptionalProducer("deduplication-service");
 const redis = createRedisClient();
 const port = Number(process.env.PORT ?? "3000");
 
@@ -18,7 +18,10 @@ await app.register(helmet);
 
 app.get("/health", async () => ({
   status: "ok",
-  service: "deduplication-service"
+  service: "deduplication-service",
+  degraded: {
+    messaging: consumer === null || producer === null
+  }
 }));
 
 function similarity(a: string, b: string) {
@@ -29,12 +32,13 @@ function similarity(a: string, b: string) {
   return union === 0 ? 0 : intersection / union;
 }
 
-await consumer.subscribe({
-  topic: topics.processedNews,
-  fromBeginning: false
-});
+if (consumer && producer) {
+  await consumer.subscribe({
+    topic: topics.processedNews,
+    fromBeginning: false
+  });
 
-consumer.run({
+  consumer.run({
   eachMessage: async ({ message }) => {
     if (!message.value) {
       return;
@@ -90,8 +94,11 @@ consumer.run({
         ]
       });
     }
-  }
-});
+    }
+  });
+} else {
+  logger.warn("Kafka is not configured; deduplication pipeline is disabled");
+}
 
 await app.listen({
   host: "0.0.0.0",

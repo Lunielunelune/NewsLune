@@ -4,21 +4,24 @@ import {
   rawNewsEventSchema,
   topics
 } from "@news/contracts";
-import { createConsumer, createProducer, createServiceContext } from "@news/platform";
+import { createOptionalConsumer, createOptionalProducer, createServiceContext } from "@news/platform";
 import Fastify from "fastify";
 import { createHash } from "node:crypto";
 
 const { logger } = createServiceContext("processing-service");
 const app = Fastify({ logger });
-const consumer = await createConsumer("processing-service", "processing-service");
-const producer = await createProducer("processing-service");
+const consumer = await createOptionalConsumer("processing-service", "processing-service");
+const producer = await createOptionalProducer("processing-service");
 const port = Number(process.env.PORT ?? "3000");
 
 await app.register(helmet);
 
 app.get("/health", async () => ({
   status: "ok",
-  service: "processing-service"
+  service: "processing-service",
+  degraded: {
+    messaging: consumer === null || producer === null
+  }
 }));
 
 function normalizeText(text?: string) {
@@ -28,12 +31,13 @@ function normalizeText(text?: string) {
     .trim();
 }
 
-await consumer.subscribe({
-  topic: topics.rawNews,
-  fromBeginning: false
-});
+if (consumer && producer) {
+  await consumer.subscribe({
+    topic: topics.rawNews,
+    fromBeginning: false
+  });
 
-consumer.run({
+  consumer.run({
   eachMessage: async ({ message }) => {
     if (!message.value) {
       return;
@@ -72,8 +76,11 @@ consumer.run({
         ]
       });
     }
-  }
-});
+    }
+  });
+} else {
+  logger.warn("Kafka is not configured; processing pipeline is disabled");
+}
 
 await app.listen({
   host: "0.0.0.0",

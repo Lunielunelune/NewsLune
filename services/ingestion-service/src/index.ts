@@ -1,6 +1,6 @@
 import helmet from "@fastify/helmet";
 import { RawNewsEvent, rawNewsEventSchema, topics } from "@news/contracts";
-import { CircuitBreaker, createProducer, createServiceContext, withRetries } from "@news/platform";
+import { CircuitBreaker, createOptionalProducer, createServiceContext, withRetries } from "@news/platform";
 import Fastify from "fastify";
 import Parser from "rss-parser";
 import { randomUUID, createHash } from "node:crypto";
@@ -8,7 +8,7 @@ import { randomUUID, createHash } from "node:crypto";
 const parser = new Parser();
 const { logger } = createServiceContext("ingestion-service");
 const app = Fastify({ logger });
-const producer = await createProducer("ingestion-service");
+const producer = await createOptionalProducer("ingestion-service");
 const feedBreaker = new CircuitBreaker(3, 60_000);
 const port = Number(process.env.PORT ?? "3000");
 
@@ -22,10 +22,16 @@ await app.register(helmet);
 
 app.get("/health", async () => ({
   status: "ok",
-  service: "ingestion-service"
+  service: "ingestion-service",
+  degraded: {
+    messaging: producer === null
+  }
 }));
 
 async function publishNewsItem(item: RawNewsEvent) {
+  if (!producer) {
+    return;
+  }
   rawNewsEventSchema.parse(item);
   await producer.send({
     topic: topics.rawNews,
@@ -71,11 +77,15 @@ async function pollFeeds() {
   );
 }
 
-setInterval(() => {
-  feedBreaker.run(() => pollFeeds()).catch((error) => logger.error({ error }, "Failed to poll feeds"));
-}, 5 * 60 * 1000);
+if (producer) {
+  setInterval(() => {
+    feedBreaker.run(() => pollFeeds()).catch((error) => logger.error({ error }, "Failed to poll feeds"));
+  }, 5 * 60 * 1000);
 
-await feedBreaker.run(() => pollFeeds());
+  await feedBreaker.run(() => pollFeeds());
+} else {
+  logger.warn("Kafka is not configured; ingestion publishing is disabled");
+}
 
 await app.listen({
   host: "0.0.0.0",

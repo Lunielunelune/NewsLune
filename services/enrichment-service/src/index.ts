@@ -5,21 +5,24 @@ import {
   enrichedNewsEventSchema,
   topics
 } from "@news/contracts";
-import { createConsumer, createProducer, createServiceContext } from "@news/platform";
+import { createOptionalConsumer, createOptionalProducer, createServiceContext } from "@news/platform";
 import Fastify from "fastify";
 import nlp from "compromise";
 
 const { logger } = createServiceContext("enrichment-service");
 const app = Fastify({ logger });
-const consumer = await createConsumer("enrichment-service", "enrichment-service");
-const producer = await createProducer("enrichment-service");
+const consumer = await createOptionalConsumer("enrichment-service", "enrichment-service");
+const producer = await createOptionalProducer("enrichment-service");
 const port = Number(process.env.PORT ?? "3000");
 
 await app.register(helmet);
 
 app.get("/health", async () => ({
   status: "ok",
-  service: "enrichment-service"
+  service: "enrichment-service",
+  degraded: {
+    messaging: consumer === null || producer === null
+  }
 }));
 
 function categorize(text: string): (typeof articleCategories)[number] {
@@ -47,12 +50,13 @@ function summarize(text: string) {
     .join(". ");
 }
 
-await consumer.subscribe({
-  topic: topics.dedupedNews,
-  fromBeginning: false
-});
+if (consumer && producer) {
+  await consumer.subscribe({
+    topic: topics.dedupedNews,
+    fromBeginning: false
+  });
 
-consumer.run({
+  consumer.run({
   eachMessage: async ({ message }) => {
     if (!message.value) {
       return;
@@ -103,8 +107,11 @@ consumer.run({
         ]
       });
     }
-  }
-});
+    }
+  });
+} else {
+  logger.warn("Kafka is not configured; enrichment pipeline is disabled");
+}
 
 await app.listen({
   host: "0.0.0.0",

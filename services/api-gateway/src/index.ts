@@ -4,7 +4,7 @@ import sensible from "@fastify/sensible";
 import { getConfig } from "@news/config";
 import { createDb, articles } from "@news/database";
 import { createLogger } from "@news/observability";
-import { CircuitBreaker, createRedisClient, createSearchClient } from "@news/platform";
+import { CircuitBreaker, createOptionalSearchClient, createRedisClient } from "@news/platform";
 import { and, desc, eq, ilike, sql } from "drizzle-orm";
 import Fastify from "fastify";
 import { z } from "zod";
@@ -14,7 +14,7 @@ const logger = createLogger("api-gateway");
 const app = Fastify({ logger });
 const db = createDb(config.POSTGRES_URL);
 const redis = createRedisClient();
-const search = createSearchClient();
+const search = createOptionalSearchClient();
 const userServiceBreaker = new CircuitBreaker(4, 15_000);
 const port = Number(process.env.PORT ?? "3001");
 
@@ -30,7 +30,10 @@ const listQuerySchema = z.object({
 
 app.get("/health", async () => ({
   status: "ok",
-  service: "api-gateway"
+  service: "api-gateway",
+  degraded: {
+    search: search === null
+  }
 }));
 
 app.get("/news", async (request) => {
@@ -71,6 +74,16 @@ app.get("/news/:id", async (request, reply) => {
 
 app.get("/search", async (request) => {
   const query = z.object({ q: z.string().min(2) }).parse(request.query);
+  if (!search) {
+    const items = await db
+      .select()
+      .from(articles)
+      .where(ilike(articles.title, `%${query.q}%`))
+      .limit(20);
+
+    return { items };
+  }
+
   const result = await search.search({
     index: "articles",
     query: {
