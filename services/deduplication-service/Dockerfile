@@ -5,5 +5,5 @@ COPY package.json pnpm-workspace.yaml tsconfig.base.json turbo.json ./
 COPY packages ./packages
 COPY services/deduplication-service ./services/deduplication-service
 RUN pnpm install --no-frozen-lockfile
-RUN pnpm --filter @news/deduplication-service build
+RUN pnpm --filter @news/deduplication-service... build
 CMD ["pnpm", "--filter", "@news/deduplication-service", "start"]
