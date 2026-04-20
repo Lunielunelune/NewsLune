@@ -1,6 +1,6 @@
 import helmet from "@fastify/helmet";
 import { enrichedNewsEventSchema, topics } from "@news/contracts";
-import { createDb, articles } from "@news/database";
+import { createDb, ensureCoreSchema, articles } from "@news/database";
 import {
   createOptionalConsumer,
   createOptionalProducer,
@@ -15,6 +15,7 @@ const { logger, config } = createServiceContext("ranking-service");
 const app = Fastify({ loggerInstance: logger });
 const consumer = await createOptionalConsumer("ranking-service", "ranking-service");
 const producer = await createOptionalProducer("ranking-service");
+await ensureCoreSchema(config.POSTGRES_URL);
 const db = createDb(config.POSTGRES_URL);
 const redis = createRedisClient();
 const search = createOptionalSearchClient();

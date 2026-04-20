@@ -1,7 +1,7 @@
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import { getConfig } from "@news/config";
-import { bookmarks, createDb, users } from "@news/database";
+import { bookmarks, createDb, ensureCoreSchema, users } from "@news/database";
 import { createLogger } from "@news/observability";
 import { eq } from "drizzle-orm";
 import Fastify from "fastify";
@@ -10,6 +10,7 @@ import { z } from "zod";
 const config = getConfig();
 const logger = createLogger("user-service");
 const app = Fastify({ loggerInstance: logger });
+await ensureCoreSchema(config.POSTGRES_URL);
 const db = createDb(config.POSTGRES_URL);
 const port = Number(process.env.PORT ?? "3000");
 
