@@ -7,7 +7,7 @@ import { randomUUID, createHash } from "node:crypto";
 
 const parser = new Parser();
 const { logger } = createServiceContext("ingestion-service");
-const app = Fastify({ logger });
+const app = Fastify({ loggerInstance: logger });
 const producer = await createOptionalProducer("ingestion-service");
 const feedBreaker = new CircuitBreaker(3, 60_000);
 const port = Number(process.env.PORT ?? "3000");

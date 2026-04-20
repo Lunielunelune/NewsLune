@@ -9,7 +9,7 @@ import { z } from "zod";
 
 const config = getConfig();
 const logger = createLogger("user-service");
-const app = Fastify({ logger });
+const app = Fastify({ loggerInstance: logger });
 const db = createDb(config.POSTGRES_URL);
 const port = Number(process.env.PORT ?? "3000");
 

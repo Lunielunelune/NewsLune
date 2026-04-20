@@ -8,7 +8,7 @@ import { createOptionalConsumer, createOptionalProducer, createRedisClient, crea
 import Fastify from "fastify";
 
 const { logger } = createServiceContext("deduplication-service");
-const app = Fastify({ logger });
+const app = Fastify({ loggerInstance: logger });
 const consumer = await createOptionalConsumer("deduplication-service", "deduplication-service");
 const producer = await createOptionalProducer("deduplication-service");
 const redis = createRedisClient();

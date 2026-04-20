@@ -9,7 +9,7 @@ import Fastify from "fastify";
 import { createHash } from "node:crypto";
 
 const { logger } = createServiceContext("processing-service");
-const app = Fastify({ logger });
+const app = Fastify({ loggerInstance: logger });
 const consumer = await createOptionalConsumer("processing-service", "processing-service");
 const producer = await createOptionalProducer("processing-service");
 const port = Number(process.env.PORT ?? "3000");

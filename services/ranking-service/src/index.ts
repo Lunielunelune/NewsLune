@@ -12,7 +12,7 @@ import { eq } from "drizzle-orm";
 import Fastify from "fastify";
 
 const { logger, config } = createServiceContext("ranking-service");
-const app = Fastify({ logger });
+const app = Fastify({ loggerInstance: logger });
 const consumer = await createOptionalConsumer("ranking-service", "ranking-service");
 const producer = await createOptionalProducer("ranking-service");
 const db = createDb(config.POSTGRES_URL);

@@ -4,7 +4,7 @@ import { createOptionalConsumer, createRedisClient, createServiceContext } from 
 import Fastify from "fastify";
 
 const { logger } = createServiceContext("notification-service");
-const app = Fastify({ logger });
+const app = Fastify({ loggerInstance: logger });
 const consumer = await createOptionalConsumer("notification-service", "notification-service");
 const redis = createRedisClient();
 const port = Number(process.env.PORT ?? "3000");

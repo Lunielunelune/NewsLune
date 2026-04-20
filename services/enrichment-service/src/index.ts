@@ -10,7 +10,7 @@ import Fastify from "fastify";
 import nlp from "compromise";
 
 const { logger } = createServiceContext("enrichment-service");
-const app = Fastify({ logger });
+const app = Fastify({ loggerInstance: logger });
 const consumer = await createOptionalConsumer("enrichment-service", "enrichment-service");
 const producer = await createOptionalProducer("enrichment-service");
 const port = Number(process.env.PORT ?? "3000");

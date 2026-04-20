@@ -11,7 +11,7 @@ import { z } from "zod";
 
 const config = getConfig();
 const logger = createLogger("api-gateway");
-const app = Fastify({ logger });
+const app = Fastify({ loggerInstance: logger });
 const db = createDb(config.POSTGRES_URL);
 const redis = createRedisClient();
 const search = createOptionalSearchClient();
