@@ -69,10 +69,13 @@ if (consumer && producer) {
       }
 
       const doc = nlp(`${event.normalizedTitle}. ${event.normalizedContent}`);
-      const entities = doc.topics().json().map((entry) => ({
-        text: entry.text,
-        type: entry.topics?.[0] ?? "Topic"
-      }));
+      const entities = doc
+        .topics()
+        .json()
+        .map((entry: { text?: string; topics?: string[] }) => ({
+          text: entry.text ?? "",
+          type: entry.topics?.[0] ?? "Topic"
+        }));
       const keywords = doc.nouns().out("array").slice(0, 10);
       const summary = summarize(event.normalizedContent || event.description || event.title);
       const category = categorize(`${event.normalizedTitle} ${event.normalizedContent}`);
