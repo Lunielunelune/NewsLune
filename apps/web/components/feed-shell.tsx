@@ -64,7 +64,7 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
     if (nextCategory) {
       url.searchParams.set("category", nextCategory);
     }
-    const response = await fetch(url.toString());
+    const response = await fetch(url.toString(), { cache: "no-store" });
     const payload = (await response.json()) as { items: Article[]; nextCursor: string | null };
     setArticles(payload.items);
     setCursor(payload.nextCursor);
@@ -85,7 +85,7 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
     if (category) {
       url.searchParams.set("category", category);
     }
-    const response = await fetch(url.toString());
+    const response = await fetch(url.toString(), { cache: "no-store" });
     const payload = (await response.json()) as { items: Article[]; nextCursor: string | null };
     setArticles((current) => [...current, ...payload.items]);
     setCursor(payload.nextCursor);
@@ -99,10 +99,17 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
 
     const url = new URL("/search", baseUrl);
     url.searchParams.set("q", nextQuery);
-    const response = await fetch(url.toString());
+    const response = await fetch(url.toString(), { cache: "no-store" });
     const payload = (await response.json()) as { items: Article[] };
     setArticles(payload.items);
     setCursor(null);
+  }
+
+  function selectCategory(nextCategory?: string) {
+    setCategory(nextCategory);
+    startTransition(() => {
+      void refreshFeed(nextCategory);
+    });
   }
 
   async function saveBookmark(articleId: string) {
@@ -128,26 +135,18 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
           <span className="sidebar-label">Categories</span>
           <div className="chip-grid">
             <button
+              type="button"
               className={!category ? "chip active" : "chip"}
-              onClick={() =>
-                startTransition(() => {
-                  setCategory(undefined);
-                  void refreshFeed(undefined);
-                })
-              }
+              onClick={() => selectCategory(undefined)}
             >
               All
             </button>
             {categories.map((item) => (
               <button
+                type="button"
                 key={item.category}
                 className={category === item.category ? "chip active" : "chip"}
-                onClick={() =>
-                  startTransition(() => {
-                    setCategory(item.category);
-                    void refreshFeed(item.category);
-                  })
-                }
+                onClick={() => selectCategory(item.category)}
               >
                 {item.category}
               </button>
