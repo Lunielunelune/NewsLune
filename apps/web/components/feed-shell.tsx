@@ -32,9 +32,30 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
   }, [darkMode]);
 
   useEffect(() => {
-    if (!window.localStorage.getItem("demo-user-id")) {
-      window.localStorage.setItem("demo-user-id", crypto.randomUUID());
+    const existingUserId = window.localStorage.getItem("demo-user-id");
+    if (existingUserId) {
+      return;
     }
+
+    const email = `demo-${crypto.randomUUID()}@aperture.local`;
+    void fetch(`${baseUrl}/users`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, preferences: { mode: "demo" } })
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          return;
+        }
+
+        const user = (await response.json()) as { id: string };
+        if (user.id) {
+          window.localStorage.setItem("demo-user-id", user.id);
+        }
+      })
+      .catch(() => {
+        window.localStorage.setItem("demo-user-id", crypto.randomUUID());
+      });
   }, []);
 
   useEffect(() => {

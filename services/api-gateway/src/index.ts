@@ -152,6 +152,29 @@ app.post("/bookmark", async (request, reply) => {
   return response.json();
 });
 
+app.post("/users", async (request, reply) => {
+  const body = z.object({
+    email: z.string().email(),
+    preferences: z.record(z.any()).optional()
+  }).parse(request.body);
+
+  const response = await userServiceBreaker.run(() =>
+    fetch(`${config.USER_SERVICE_URL}/users`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify(body)
+    })
+  );
+
+  if (!response.ok) {
+    return reply.code(response.status).send(await response.json());
+  }
+
+  return response.json();
+});
+
 app.get("/news/stream", async (request, reply) => {
   const subscriber = createRedisClient();
 

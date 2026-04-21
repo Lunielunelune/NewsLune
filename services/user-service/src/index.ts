@@ -28,6 +28,11 @@ app.post("/users", async (request) => {
     preferences: z.record(z.any()).optional()
   }).parse(request.body);
 
+  const existing = await db.select().from(users).where(eq(users.email, payload.email)).limit(1);
+  if (existing.length > 0) {
+    return existing[0];
+  }
+
   const [user] = await db
     .insert(users)
     .values({
