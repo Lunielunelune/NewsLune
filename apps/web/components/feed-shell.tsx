@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Article } from "../lib/api";
 
 interface CategorySummary {
@@ -25,7 +25,6 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
   const [query, setQuery] = useState("");
   const [newArticlesAvailable, setNewArticlesAvailable] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [isPending, startTransition] = useTransition();
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -141,9 +140,7 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
     } else {
       setArticles(allArticles);
     }
-    startTransition(() => {
-      void refreshFeed(nextCategory);
-    });
+    void refreshFeed(nextCategory);
   }
 
   async function saveBookmark(articleId: string) {
@@ -198,9 +195,7 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
             onChange={(event) => {
               const nextQuery = event.target.value;
               setQuery(nextQuery);
-              startTransition(() => {
-                void runSearch(nextQuery);
-              });
+              void runSearch(nextQuery);
             }}
           />
           {newArticlesAvailable ? (
@@ -208,7 +203,7 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
               New articles available
             </button>
           ) : (
-            <span className="status-text">{isPending ? "Updating…" : "Live"}</span>
+            <span className="status-text">Live</span>
           )}
         </div>
 
