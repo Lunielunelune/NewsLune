@@ -2,12 +2,18 @@ import helmet from "@fastify/helmet";
 import { RawNewsEvent, rawNewsEventSchema, topics } from "@news/contracts";
 import { createDb, ensureCoreSchema, articles } from "@news/database";
 import { CircuitBreaker, createOptionalProducer, createRedisClient, createServiceContext, withRetries } from "@news/platform";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, like, or } from "drizzle-orm";
 import Fastify from "fastify";
 import Parser from "rss-parser";
 import { randomUUID, createHash } from "node:crypto";
 
-const parser = new Parser();
+const parser = new Parser<{
+  contentEncoded?: string;
+}>({
+  customFields: {
+    item: [["content:encoded", "contentEncoded"]]
+  }
+});
 const { logger, config } = createServiceContext("ingestion-service");
 const app = Fastify({ loggerInstance: logger });
 const producer = await createOptionalProducer("ingestion-service");
@@ -18,10 +24,92 @@ const feedBreaker = new CircuitBreaker(3, 60_000);
 const port = Number(process.env.PORT ?? "3000");
 
 const feeds = [
-  "https://feeds.bbci.co.uk/news/rss.xml",
-  "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
-  "https://www.aljazeera.com/xml/rss/all.xml"
-];
+  {
+    url: "https://feeds.bbci.co.uk/news/world/rss.xml",
+    source: "BBC News",
+    category: "World"
+  },
+  {
+    url: "https://feeds.bbci.co.uk/news/politics/rss.xml",
+    source: "BBC News",
+    category: "Politics"
+  },
+  {
+    url: "https://feeds.bbci.co.uk/news/business/rss.xml",
+    source: "BBC News",
+    category: "Business"
+  },
+  {
+    url: "https://feeds.bbci.co.uk/news/technology/rss.xml",
+    source: "BBC News",
+    category: "Technology"
+  },
+  {
+    url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
+    source: "BBC News",
+    category: "Science"
+  },
+  {
+    url: "https://feeds.bbci.co.uk/news/health/rss.xml",
+    source: "BBC News",
+    category: "Health"
+  },
+  {
+    url: "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",
+    source: "BBC News",
+    category: "Entertainment"
+  },
+  {
+    url: "https://feeds.bbci.co.uk/sport/rss.xml",
+    source: "BBC Sport",
+    category: "Sports"
+  },
+  {
+    url: "https://www.theguardian.com/world/rss",
+    source: "The Guardian",
+    category: "World"
+  },
+  {
+    url: "https://www.theguardian.com/politics/rss",
+    source: "The Guardian",
+    category: "Politics"
+  },
+  {
+    url: "https://www.theguardian.com/business/rss",
+    source: "The Guardian",
+    category: "Business"
+  },
+  {
+    url: "https://www.theguardian.com/technology/rss",
+    source: "The Guardian",
+    category: "Technology"
+  },
+  {
+    url: "https://www.theguardian.com/science/rss",
+    source: "The Guardian",
+    category: "Science"
+  },
+  {
+    url: "https://www.theguardian.com/society/health/rss",
+    source: "The Guardian",
+    category: "Health"
+  },
+  {
+    url: "https://www.theguardian.com/film/rss",
+    source: "The Guardian",
+    category: "Entertainment"
+  },
+  {
+    url: "https://www.theguardian.com/football/rss",
+    source: "The Guardian",
+    category: "Sports"
+  },
+  {
+    url: "https://www.aljazeera.com/xml/rss/all.xml",
+    source: "Al Jazeera",
+    category: "World"
+  }
+] as const;
 
 await app.register(helmet);
 
@@ -65,6 +153,10 @@ function categorize(text: string) {
   return match?.[0] ?? "World";
 }
 
+function pickCategory(text: string, hint?: string) {
+  return hint ?? categorize(text);
+}
+
 function summarize(text: string) {
   return text
     .split(/[.!?]/)
@@ -99,7 +191,7 @@ function extractEntities(title: string) {
 function calculateRankingScore(publishedAt: string, source: string) {
   const ageHours = (Date.now() - new Date(publishedAt).getTime()) / 3_600_000;
   const recencyScore = Math.max(0, 1 - ageHours / 24);
-  const sourceQualityScore = ["BBC News", "The New York Times", "Al Jazeera English"].includes(source) ? 1 : 0.6;
+  const sourceQualityScore = ["BBC News", "BBC Sport", "The Guardian", "Al Jazeera"].includes(source) ? 1 : 0.6;
   return Math.round((recencyScore * 0.7 + sourceQualityScore * 0.3) * 1000);
 }
 
@@ -126,7 +218,7 @@ async function ingestDirectly(item: RawNewsEvent) {
   }
 
   const articleText = `${normalizedTitle}. ${normalizedContent}`;
-  const category = categorize(articleText);
+  const category = pickCategory(articleText, item.metadata.categoryHint as string | undefined);
   const summary = summarize(normalizedContent || normalizedTitle);
   const rankingScore = calculateRankingScore(item.publishedAt, item.source);
 
@@ -160,6 +252,23 @@ async function ingestDirectly(item: RawNewsEvent) {
   );
 }
 
+async function cleanupNonReadableSeedData() {
+  await db
+    .delete(articles)
+    .where(
+      or(
+        eq(articles.source, "NYT > Top Stories"),
+        eq(articles.source, "Aperture Markets Desk"),
+        eq(articles.source, "Aperture Climate Desk"),
+        eq(articles.source, "Aperture Finance"),
+        eq(articles.source, "Aperture Health"),
+        eq(articles.source, "Aperture World"),
+        eq(articles.source, "Aperture Culture"),
+        like(articles.url, "https://aperture-news.example.com/%")
+      )
+    );
+}
+
 async function publishNewsItem(item: RawNewsEvent) {
   if (!producer) {
     await ingestDirectly(item);
@@ -179,9 +288,9 @@ async function publishNewsItem(item: RawNewsEvent) {
 
 async function pollFeeds() {
   await Promise.all(
-    feeds.map(async (feedUrl) =>
+    feeds.map(async (feedConfig) =>
       withRetries(async () => {
-        const feed = await parser.parseURL(feedUrl);
+        const feed = await parser.parseURL(feedConfig.url);
 
         await Promise.all(
           (feed.items ?? []).slice(0, 25).map(async (item) => {
@@ -191,16 +300,17 @@ async function pollFeeds() {
 
             await publishNewsItem({
               id: randomUUID(),
-              source: feed.title ?? new URL(feedUrl).hostname,
+              source: feedConfig.source,
               title: item.title,
-              description: item.contentSnippet,
-              content: item.content,
+              description: item.contentSnippet ?? item.contentSnippet,
+              content: item.contentEncoded ?? item.content ?? item.contentSnippet,
               url: item.link,
               imageUrl: item.enclosure?.url,
               publishedAt: new Date(item.pubDate).toISOString(),
               ingestedAt: new Date().toISOString(),
               metadata: {
-                author: item.creator
+                author: item.creator,
+                categoryHint: feedConfig.category
               }
             });
           })
@@ -211,12 +321,14 @@ async function pollFeeds() {
 }
 
 if (producer) {
+  await cleanupNonReadableSeedData();
   setInterval(() => {
     feedBreaker.run(() => pollFeeds()).catch((error) => logger.error({ error }, "Failed to poll feeds"));
   }, 5 * 60 * 1000);
 
   await feedBreaker.run(() => pollFeeds());
 } else {
+  await cleanupNonReadableSeedData();
   logger.warn("Kafka is not configured; direct ingestion mode is enabled");
   setInterval(() => {
     feedBreaker.run(() => pollFeeds()).catch((error) => logger.error({ error }, "Failed to ingest feeds directly"));
