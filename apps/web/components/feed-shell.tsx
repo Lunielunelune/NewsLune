@@ -22,7 +22,6 @@ const sseUrl = process.env.NEXT_PUBLIC_SSE_URL ?? "http://localhost:3001/news/st
 
 export function FeedShell({ initialArticles, initialCursor, categories, initialCategory }: FeedShellProps) {
   const [articles, setArticles] = useState(initialArticles);
-  const [allArticles, setAllArticles] = useState(initialArticles);
   const [cursor, setCursor] = useState(initialCursor);
   const [category, setCategory] = useState<string | undefined>(initialCategory);
   const [query, setQuery] = useState("");
@@ -37,7 +36,6 @@ export function FeedShell({ initialArticles, initialCursor, categories, initialC
 
   useEffect(() => {
     setArticles(initialArticles);
-    setAllArticles(initialArticles);
     setCursor(initialCursor);
     setCategory(initialCategory);
   }, [initialArticles, initialCursor, initialCategory]);
@@ -73,9 +71,6 @@ export function FeedShell({ initialArticles, initialCursor, categories, initialC
     try {
       const response = await fetch(url.toString(), { cache: "no-store" });
       const payload = (await response.json()) as { items: Article[]; nextCursor: string | null };
-      if (!nextCategory) {
-        setAllArticles(payload.items);
-      }
       setArticles(payload.items);
       setCursor(payload.nextCursor);
     } finally {
@@ -101,9 +96,6 @@ export function FeedShell({ initialArticles, initialCursor, categories, initialC
     const response = await fetch(url.toString(), { cache: "no-store" });
     const payload = (await response.json()) as { items: Article[]; nextCursor: string | null };
     setArticles((current) => [...current, ...payload.items]);
-    if (!category) {
-      setAllArticles((current) => [...current, ...payload.items]);
-    }
     setCursor(payload.nextCursor);
   }
 
