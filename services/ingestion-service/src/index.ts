@@ -134,6 +134,58 @@ function pickImageUrl(item: {
   );
 }
 
+function resolveUrl(candidate: string, base: string) {
+  try {
+    return new URL(candidate, base).toString();
+  } catch {
+    return undefined;
+  }
+}
+
+function extractMetaImageUrl(html: string, pageUrl: string) {
+  const patterns = [
+    /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+    /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    const candidate = match?.[1];
+    if (!candidate) {
+      continue;
+    }
+
+    const resolved = resolveUrl(candidate, pageUrl);
+    if (resolved) {
+      return resolved;
+    }
+  }
+
+  return extractInlineImageUrl(html);
+}
+
+async function discoverArticleImageUrl(pageUrl: string) {
+  try {
+    const response = await fetch(pageUrl, {
+      headers: {
+        "user-agent": "Mozilla/5.0 (compatible; ApertureNewsBot/1.0; +https://newsweb-production-b624.up.railway.app)"
+      }
+    });
+
+    if (!response.ok) {
+      return undefined;
+    }
+
+    const html = await response.text();
+    return extractMetaImageUrl(html, pageUrl);
+  } catch (error) {
+    logger.debug({ error, pageUrl }, "Unable to discover article image from source page");
+    return undefined;
+  }
+}
+
 function similarity(a: string, b: string) {
   const first = new Set(a.toLowerCase().split(/\W+/).filter(Boolean));
   const second = new Set(b.toLowerCase().split(/\W+/).filter(Boolean));
@@ -319,6 +371,8 @@ async function pollFeeds() {
               return;
             }
 
+            const imageUrl = pickImageUrl(item) ?? (await discoverArticleImageUrl(item.link));
+
             await publishNewsItem({
               id: randomUUID(),
               source: feedConfig.source,
@@ -326,7 +380,7 @@ async function pollFeeds() {
               description: item.contentSnippet ?? item.contentSnippet,
               content: item.contentEncoded ?? item.content ?? item.contentSnippet,
               url: item.link,
-              imageUrl: pickImageUrl(item),
+              imageUrl,
               publishedAt: new Date(item.pubDate).toISOString(),
               ingestedAt: new Date().toISOString(),
               metadata: {
