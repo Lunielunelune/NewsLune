@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Article } from "../lib/api";
+import { BookmarkButton } from "./bookmark-button";
 
 interface CategorySummary {
   category: string;
@@ -30,33 +32,6 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? "dark" : "light";
   }, [darkMode]);
-
-  useEffect(() => {
-    const existingUserId = window.localStorage.getItem("demo-user-id");
-    if (existingUserId) {
-      return;
-    }
-
-    const email = `demo-${crypto.randomUUID()}@aperture.local`;
-    void fetch(`${baseUrl}/users`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, preferences: { mode: "demo" } })
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          return;
-        }
-
-        const user = (await response.json()) as { id: string };
-        if (user.id) {
-          window.localStorage.setItem("demo-user-id", user.id);
-        }
-      })
-      .catch(() => {
-        window.localStorage.setItem("demo-user-id", crypto.randomUUID());
-      });
-  }, []);
 
   useEffect(() => {
     const stream = new EventSource(sseUrl);
@@ -143,33 +118,20 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
     void refreshFeed(nextCategory);
   }
 
-  async function saveBookmark(articleId: string) {
-    const userId = window.localStorage.getItem("demo-user-id");
-    if (!userId) {
-      return;
-    }
-
-    await fetch(`${baseUrl}/bookmark`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ userId, articleId })
-    });
-  }
-
   function articleVisual(article: Article) {
     if (article.imageUrl) {
       return (
-        <div className="article-visual">
+        <Link href={`/news/${article.id}`} className="article-visual">
           {/* We intentionally prefer source images when available to make the feed feel alive. */}
           <img src={article.imageUrl} alt={article.title} loading="lazy" />
-        </div>
+        </Link>
       );
     }
 
     return (
-      <div className="article-visual article-visual-fallback" aria-hidden="true">
+      <Link href={`/news/${article.id}`} className="article-visual article-visual-fallback" aria-hidden="true">
         <span>{article.category}</span>
-      </div>
+      </Link>
     );
   }
 
@@ -232,13 +194,18 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
                 <span>{article.category}</span>
                 <span>{article.source}</span>
               </div>
-              <h2>{article.title}</h2>
+              <h2>
+                <Link href={`/news/${article.id}`}>{article.title}</Link>
+              </h2>
               <p>{article.summary ?? article.description}</p>
               <div className="article-footer">
-                <a href={article.url} target="_blank" rel="noreferrer">
-                  Read source
-                </a>
-                <button onClick={() => void saveBookmark(article.id)}>Bookmark</button>
+                <div className="article-footer-links">
+                  <Link href={`/news/${article.id}`}>Open article</Link>
+                  <a href={article.url} target="_blank" rel="noreferrer">
+                    Read source
+                  </a>
+                </div>
+                <BookmarkButton articleId={article.id} />
               </div>
             </article>
           ))}

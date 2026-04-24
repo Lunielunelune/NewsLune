@@ -10,6 +10,9 @@ export interface Article {
   category: string;
   rankingScore: number;
   publishedAt: string;
+  createdAt?: string;
+  entities?: Array<{ text: string; type: string }>;
+  keywords?: string[];
 }
 
 const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
@@ -49,5 +52,17 @@ export async function getCategories() {
     return response.json() as Promise<{ items: Array<{ category: string; count: number }> }>;
   } catch {
     return emptyCategoriesResponse;
+  }
+}
+
+export async function getArticle(id: string) {
+  try {
+    const response = await fetch(`${baseUrl}/news/${id}`, { next: { revalidate: 30 } });
+    if (!response.ok) {
+      return null;
+    }
+    return response.json() as Promise<Article>;
+  } catch {
+    return null;
   }
 }
