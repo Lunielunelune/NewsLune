@@ -195,10 +195,52 @@ input {
 }
 
 .article-card {
-  padding: 22px;
+  overflow: hidden;
   display: grid;
   gap: 14px;
   min-height: 260px;
+}
+
+.article-card > :not(.article-visual) {
+  padding-left: 22px;
+  padding-right: 22px;
+}
+
+.article-card > :last-child {
+  padding-bottom: 22px;
+}
+
+.article-visual {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: rgba(120, 128, 140, 0.1);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.article-visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.article-visual-fallback {
+  display: grid;
+  place-items: end start;
+  padding: 18px 22px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,0.72), rgba(123, 170, 255, 0.18) 32%, transparent 60%),
+    linear-gradient(135deg, rgba(10, 132, 255, 0.16), rgba(120, 128, 140, 0.08));
+}
+
+.article-visual-fallback span {
+  display: inline-flex;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .article-card h2 {

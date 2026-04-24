@@ -156,6 +156,23 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
     });
   }
 
+  function articleVisual(article: Article) {
+    if (article.imageUrl) {
+      return (
+        <div className="article-visual">
+          {/* We intentionally prefer source images when available to make the feed feel alive. */}
+          <img src={article.imageUrl} alt={article.title} loading="lazy" />
+        </div>
+      );
+    }
+
+    return (
+      <div className="article-visual article-visual-fallback" aria-hidden="true">
+        <span>{article.category}</span>
+      </div>
+    );
+  }
+
   return (
     <section className="feed-layout">
       <aside className="sidebar glass-panel">
@@ -210,6 +227,7 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
         <div className="articles-grid">
           {articles.map((article) => (
             <article className="article-card glass-panel" key={article.id}>
+              {articleVisual(article)}
               <div className="article-meta">
                 <span>{article.category}</span>
                 <span>{article.source}</span>

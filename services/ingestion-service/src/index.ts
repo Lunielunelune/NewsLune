@@ -2,16 +2,22 @@ import helmet from "@fastify/helmet";
 import { RawNewsEvent, rawNewsEventSchema, topics } from "@news/contracts";
 import { createDb, ensureCoreSchema, articles } from "@news/database";
 import { CircuitBreaker, createOptionalProducer, createRedisClient, createServiceContext, withRetries } from "@news/platform";
-import { desc, eq, like, or } from "drizzle-orm";
+import { and, desc, eq, isNull, like, or } from "drizzle-orm";
 import Fastify from "fastify";
 import Parser from "rss-parser";
 import { randomUUID, createHash } from "node:crypto";
 
 const parser = new Parser<{
   contentEncoded?: string;
+  mediaContent?: { $?: { url?: string } } | Array<{ $?: { url?: string } }>;
+  mediaThumbnail?: { $?: { url?: string } } | Array<{ $?: { url?: string } }>;
 }>({
   customFields: {
-    item: [["content:encoded", "contentEncoded"]]
+    item: [
+      ["content:encoded", "contentEncoded"],
+      ["media:content", "mediaContent", { keepArray: true }],
+      ["media:thumbnail", "mediaThumbnail", { keepArray: true }]
+    ]
   }
 });
 const { logger, config } = createServiceContext("ingestion-service");
@@ -89,6 +95,45 @@ function normalizeText(text?: string) {
     .trim();
 }
 
+function firstMediaUrl(
+  value?: { $?: { url?: string } } | Array<{ $?: { url?: string } }>
+) {
+  if (!value) {
+    return undefined;
+  }
+
+  if (Array.isArray(value)) {
+    return value.find((item) => item?.$?.url)?.$?.url;
+  }
+
+  return value.$?.url;
+}
+
+function extractInlineImageUrl(text?: string) {
+  if (!text) {
+    return undefined;
+  }
+
+  const match = text.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return match?.[1];
+}
+
+function pickImageUrl(item: {
+  enclosure?: { url?: string };
+  contentEncoded?: string;
+  content?: string;
+  mediaContent?: { $?: { url?: string } } | Array<{ $?: { url?: string } }>;
+  mediaThumbnail?: { $?: { url?: string } } | Array<{ $?: { url?: string } }>;
+}) {
+  return (
+    item.enclosure?.url ??
+    firstMediaUrl(item.mediaContent) ??
+    firstMediaUrl(item.mediaThumbnail) ??
+    extractInlineImageUrl(item.contentEncoded) ??
+    extractInlineImageUrl(item.content)
+  );
+}
+
 function similarity(a: string, b: string) {
   const first = new Set(a.toLowerCase().split(/\W+/).filter(Boolean));
   const second = new Set(b.toLowerCase().split(/\W+/).filter(Boolean));
@@ -156,8 +201,18 @@ function calculateRankingScore(publishedAt: string, source: string) {
 }
 
 async function ingestDirectly(item: RawNewsEvent) {
-  const existing = await db.select({ id: articles.id }).from(articles).where(eq(articles.url, item.url)).limit(1);
+  const existing = await db
+    .select({ id: articles.id, imageUrl: articles.imageUrl })
+    .from(articles)
+    .where(eq(articles.url, item.url))
+    .limit(1);
   if (existing.length > 0) {
+    if (item.imageUrl && !existing[0]?.imageUrl) {
+      await db
+        .update(articles)
+        .set({ imageUrl: item.imageUrl })
+        .where(and(eq(articles.id, existing[0].id), isNull(articles.imageUrl)));
+    }
     return;
   }
 
@@ -271,7 +326,7 @@ async function pollFeeds() {
               description: item.contentSnippet ?? item.contentSnippet,
               content: item.contentEncoded ?? item.content ?? item.contentSnippet,
               url: item.link,
-              imageUrl: item.enclosure?.url,
+              imageUrl: pickImageUrl(item),
               publishedAt: new Date(item.pubDate).toISOString(),
               ingestedAt: new Date().toISOString(),
               metadata: {
