@@ -27,6 +27,7 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
   const [query, setQuery] = useState("");
   const [newArticlesAvailable, setNewArticlesAvailable] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [loadingFeed, setLoadingFeed] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -56,17 +57,22 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
   }, [cursor, query]);
 
   async function fetchFeed(nextCategory?: string) {
+    setLoadingFeed(true);
     const url = new URL("/news", baseUrl);
     if (nextCategory) {
       url.searchParams.set("category", nextCategory);
     }
-    const response = await fetch(url.toString(), { cache: "no-store" });
-    const payload = (await response.json()) as { items: Article[]; nextCursor: string | null };
-    if (!nextCategory) {
-      setAllArticles(payload.items);
+    try {
+      const response = await fetch(url.toString(), { cache: "no-store" });
+      const payload = (await response.json()) as { items: Article[]; nextCursor: string | null };
+      if (!nextCategory) {
+        setAllArticles(payload.items);
+      }
+      setArticles(payload.items);
+      setCursor(payload.nextCursor);
+    } finally {
+      setLoadingFeed(false);
     }
-    setArticles(payload.items);
-    setCursor(payload.nextCursor);
   }
 
   async function refreshFeed(nextCategory = category) {
@@ -99,23 +105,25 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
       return;
     }
 
+    setLoadingFeed(true);
     const url = new URL("/search", baseUrl);
     url.searchParams.set("q", nextQuery);
-    const response = await fetch(url.toString(), { cache: "no-store" });
-    const payload = (await response.json()) as { items: Article[] };
-    setArticles(payload.items);
-    setCursor(null);
+    try {
+      const response = await fetch(url.toString(), { cache: "no-store" });
+      const payload = (await response.json()) as { items: Article[] };
+      setArticles(payload.items);
+      setCursor(null);
+    } finally {
+      setLoadingFeed(false);
+    }
   }
 
-  function selectCategory(nextCategory?: string) {
+  async function selectCategory(nextCategory?: string) {
     setCategory(nextCategory);
-    if (nextCategory) {
-      setArticles(allArticles.filter((article) => article.category === nextCategory));
-      setCursor(null);
-    } else {
+    if (!nextCategory) {
       setArticles(allArticles);
     }
-    void refreshFeed(nextCategory);
+    await refreshFeed(nextCategory);
   }
 
   function articleVisual(article: Article) {
@@ -147,7 +155,7 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
             <button
               type="button"
               className={!category ? "chip active" : "chip"}
-              onClick={() => selectCategory(undefined)}
+              onClick={() => void selectCategory(undefined)}
             >
               All
             </button>
@@ -156,7 +164,7 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
                 type="button"
                 key={item.category}
                 className={category === item.category ? "chip active" : "chip"}
-                onClick={() => selectCategory(item.category)}
+                onClick={() => void selectCategory(item.category)}
               >
                 {item.category}
               </button>
@@ -211,7 +219,7 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
           ))}
         </div>
         <div ref={loadMoreRef} className="load-sentinel">
-          {cursor ? "Loading more when you scroll…" : "You’re caught up."}
+          {loadingFeed ? "Refreshing stories…" : cursor ? "Loading more when you scroll…" : "You’re caught up."}
         </div>
       </div>
     </section>
