@@ -14,16 +14,17 @@ interface FeedShellProps {
   initialArticles: Article[];
   initialCursor: string | null;
   categories: CategorySummary[];
+  initialCategory?: string;
 }
 
 const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
 const sseUrl = process.env.NEXT_PUBLIC_SSE_URL ?? "http://localhost:3001/news/stream";
 
-export function FeedShell({ initialArticles, initialCursor, categories }: FeedShellProps) {
+export function FeedShell({ initialArticles, initialCursor, categories, initialCategory }: FeedShellProps) {
   const [articles, setArticles] = useState(initialArticles);
   const [allArticles, setAllArticles] = useState(initialArticles);
   const [cursor, setCursor] = useState(initialCursor);
-  const [category, setCategory] = useState<string>();
+  const [category, setCategory] = useState<string | undefined>(initialCategory);
   const [query, setQuery] = useState("");
   const [newArticlesAvailable, setNewArticlesAvailable] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -33,6 +34,13 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? "dark" : "light";
   }, [darkMode]);
+
+  useEffect(() => {
+    setArticles(initialArticles);
+    setAllArticles(initialArticles);
+    setCursor(initialCursor);
+    setCategory(initialCategory);
+  }, [initialArticles, initialCursor, initialCategory]);
 
   useEffect(() => {
     const stream = new EventSource(sseUrl);
@@ -118,14 +126,6 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
     }
   }
 
-  async function selectCategory(nextCategory?: string) {
-    setCategory(nextCategory);
-    if (!nextCategory) {
-      setArticles(allArticles);
-    }
-    await refreshFeed(nextCategory);
-  }
-
   function articleVisual(article: Article) {
     if (article.imageUrl) {
       return (
@@ -152,22 +152,17 @@ export function FeedShell({ initialArticles, initialCursor, categories }: FeedSh
         <div className="sidebar-block">
           <span className="sidebar-label">Categories</span>
           <div className="chip-grid">
-            <button
-              type="button"
-              className={!category ? "chip active" : "chip"}
-              onClick={() => void selectCategory(undefined)}
-            >
+            <Link href="/" className={!category ? "chip active" : "chip"}>
               All
-            </button>
+            </Link>
             {categories.map((item) => (
-              <button
-                type="button"
+              <Link
                 key={item.category}
                 className={category === item.category ? "chip active" : "chip"}
-                onClick={() => void selectCategory(item.category)}
+                href={`/?category=${encodeURIComponent(item.category)}`}
               >
                 {item.category}
-              </button>
+              </Link>
             ))}
           </div>
         </div>
