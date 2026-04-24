@@ -5,7 +5,7 @@ import { getConfig } from "@news/config";
 import { createDb, ensureCoreSchema, articles } from "@news/database";
 import { createLogger } from "@news/observability";
 import { CircuitBreaker, createOptionalSearchClient, createRedisClient } from "@news/platform";
-import { and, desc, eq, ilike, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, sql } from "drizzle-orm";
 import Fastify from "fastify";
 import { z } from "zod";
 
@@ -173,6 +173,43 @@ app.post("/users", async (request, reply) => {
   }
 
   return response.json();
+});
+
+app.get("/users/:id/bookmarks", async (request, reply) => {
+  const params = z.object({ id: z.string().uuid() }).parse(request.params);
+
+  const response = await userServiceBreaker.run(() =>
+    fetch(`${config.USER_SERVICE_URL}/users/${params.id}/bookmarks`)
+  );
+
+  if (!response.ok) {
+    return reply.code(response.status).send(await response.json());
+  }
+
+  const bookmarks = (await response.json()) as Array<{
+    userId: string;
+    articleId: string;
+    createdAt: string;
+  }>;
+
+  if (bookmarks.length === 0) {
+    return { items: [] };
+  }
+
+  const bookmarkOrder = new Map(
+    bookmarks.map((bookmark) => [bookmark.articleId, new Date(bookmark.createdAt).getTime()])
+  );
+
+  const items = await db
+    .select()
+    .from(articles)
+    .where(inArray(articles.id, bookmarks.map((bookmark) => bookmark.articleId)));
+
+  items.sort((left, right) => {
+    return (bookmarkOrder.get(right.id) ?? 0) - (bookmarkOrder.get(left.id) ?? 0);
+  });
+
+  return { items };
 });
 
 app.get("/news/stream", async (request, reply) => {
