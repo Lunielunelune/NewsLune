@@ -65,46 +65,6 @@ const feeds = [
     category: "Sports"
   },
   {
-    url: "https://www.theguardian.com/world/rss",
-    source: "The Guardian",
-    category: "World"
-  },
-  {
-    url: "https://www.theguardian.com/politics/rss",
-    source: "The Guardian",
-    category: "Politics"
-  },
-  {
-    url: "https://www.theguardian.com/business/rss",
-    source: "The Guardian",
-    category: "Business"
-  },
-  {
-    url: "https://www.theguardian.com/technology/rss",
-    source: "The Guardian",
-    category: "Technology"
-  },
-  {
-    url: "https://www.theguardian.com/science/rss",
-    source: "The Guardian",
-    category: "Science"
-  },
-  {
-    url: "https://www.theguardian.com/society/health/rss",
-    source: "The Guardian",
-    category: "Health"
-  },
-  {
-    url: "https://www.theguardian.com/film/rss",
-    source: "The Guardian",
-    category: "Entertainment"
-  },
-  {
-    url: "https://www.theguardian.com/football/rss",
-    source: "The Guardian",
-    category: "Sports"
-  },
-  {
     url: "https://www.aljazeera.com/xml/rss/all.xml",
     source: "Al Jazeera",
     category: "World"
@@ -290,7 +250,13 @@ async function pollFeeds() {
   await Promise.all(
     feeds.map(async (feedConfig) =>
       withRetries(async () => {
-        const feed = await parser.parseURL(feedConfig.url);
+        let feed;
+        try {
+          feed = await parser.parseURL(feedConfig.url);
+        } catch (error) {
+          logger.warn({ error, feedUrl: feedConfig.url }, "Skipping invalid RSS feed");
+          return;
+        }
 
         await Promise.all(
           (feed.items ?? []).slice(0, 25).map(async (item) => {
