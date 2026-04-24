@@ -57,6 +57,7 @@ export function BookmarksShell() {
             <Link href={`/news/${article.id}`}>{article.title}</Link>
           </h2>
           <p>{article.summary ?? article.description}</p>
+          <p className="article-attribution">Source copyright and full article rights belong to {article.source}.</p>
           <div className="article-footer">
             <div className="article-footer-links">
               <Link href={`/news/${article.id}`}>Open article</Link>

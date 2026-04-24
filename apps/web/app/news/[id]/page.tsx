@@ -46,6 +46,10 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
             </div>
             <h1>{article.title}</h1>
             <p className="article-summary">{article.summary ?? article.description}</p>
+            <p className="article-attribution">
+              Source attribution: {article.source}. Copyright in the original article and associated source media
+              remains with the publisher.
+            </p>
             <div className="article-detail-meta">
               <span>{formatDate(article.publishedAt)}</span>
               <div className="article-detail-actions">
@@ -135,6 +139,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
                   <Link href={`/news/${item.id}`}>{item.title}</Link>
                 </h2>
                 <p>{item.summary ?? item.description}</p>
+                <p className="article-attribution">Source copyright and full article rights belong to {item.source}.</p>
                 <div className="article-footer">
                   <div className="article-footer-links">
                     <Link href={`/news/${item.id}`}>Open article</Link>

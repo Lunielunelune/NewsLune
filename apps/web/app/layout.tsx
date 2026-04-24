@@ -19,10 +19,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <nav className="site-nav-links">
               <Link href="/">Home</Link>
               <Link href="/bookmarks">My Bookmarks</Link>
+              <Link href="/privacy">Privacy</Link>
             </nav>
           </div>
         </header>
         {children}
+        <footer className="site-footer">
+          <div className="site-footer-inner">
+            <p>
+              Aperture News aggregates headlines, summaries, and metadata from third-party publishers. Copyright in
+              the original reporting, images, and linked source material remains with the respective publishers.
+            </p>
+            <nav className="site-footer-links">
+              <Link href="/">Home</Link>
+              <Link href="/bookmarks">My Bookmarks</Link>
+              <Link href="/privacy">Privacy Policy</Link>
+            </nav>
+          </div>
+        </footer>
       </body>
     </html>
   );
