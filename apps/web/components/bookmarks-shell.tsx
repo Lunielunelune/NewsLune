@@ -46,19 +46,24 @@ export function BookmarksShell() {
             src={article.imageUrl}
             alt={article.title}
             label={article.category}
+            newTab
           />
           <div className="article-meta">
             <span>{article.category}</span>
             <span>{article.source}</span>
           </div>
           <h2>
-            <Link href={`/news/${article.id}`}>{article.title}</Link>
+            <Link href={`/news/${article.id}`} target="_blank" rel="noreferrer">
+              {article.title}
+            </Link>
           </h2>
           <p>{article.summary ?? article.description}</p>
           <p className="article-attribution">Source copyright and full article rights belong to {article.source}.</p>
           <div className="article-footer">
             <div className="article-footer-links">
-              <Link href={`/news/${article.id}`}>Open article</Link>
+              <Link href={`/news/${article.id}`} target="_blank" rel="noreferrer">
+                Open article
+              </Link>
               <a href={article.url} target="_blank" rel="noreferrer">
                 Read source
               </a>

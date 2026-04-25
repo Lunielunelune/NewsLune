@@ -9,6 +9,7 @@ interface ArticleImageProps {
   alt: string;
   label: string;
   variant?: "card" | "hero";
+  newTab?: boolean;
 }
 
 const minimumWidths = {
@@ -16,7 +17,7 @@ const minimumWidths = {
   hero: 960
 } as const;
 
-export function ArticleImage({ href, src, alt, label, variant = "card" }: ArticleImageProps) {
+export function ArticleImage({ href, src, alt, label, variant = "card", newTab = false }: ArticleImageProps) {
   const [showFallback, setShowFallback] = useState(!src);
   const isExternal = /^https?:\/\//.test(href);
 
@@ -37,7 +38,7 @@ export function ArticleImage({ href, src, alt, label, variant = "card" }: Articl
     }
 
     return (
-      <Link href={href} className={fallbackClassName} aria-hidden="true">
+      <Link href={href} className={fallbackClassName} aria-hidden="true" target={newTab ? "_blank" : undefined} rel={newTab ? "noreferrer" : undefined}>
         {fallbackChild}
       </Link>
     );
@@ -66,7 +67,12 @@ export function ArticleImage({ href, src, alt, label, variant = "card" }: Articl
   }
 
   return (
-    <Link href={href} className={variant === "hero" ? "article-hero-visual" : "article-visual"}>
+    <Link
+      href={href}
+      className={variant === "hero" ? "article-hero-visual" : "article-visual"}
+      target={newTab ? "_blank" : undefined}
+      rel={newTab ? "noreferrer" : undefined}
+    >
       {image}
     </Link>
   );

@@ -126,19 +126,24 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
                   src={item.imageUrl}
                   alt={item.title}
                   label={item.category}
+                  newTab
                 />
                 <div className="article-meta">
                   <span>{item.category}</span>
                   <span>{item.source}</span>
                 </div>
                 <h2>
-                  <Link href={`/news/${item.id}`}>{item.title}</Link>
+                  <Link href={`/news/${item.id}`} target="_blank" rel="noreferrer">
+                    {item.title}
+                  </Link>
                 </h2>
                 <p>{item.summary ?? item.description}</p>
                 <p className="article-attribution">Source copyright and full article rights belong to {item.source}.</p>
                 <div className="article-footer">
                   <div className="article-footer-links">
-                    <Link href={`/news/${item.id}`}>Open article</Link>
+                    <Link href={`/news/${item.id}`} target="_blank" rel="noreferrer">
+                      Open article
+                    </Link>
                     <a href={item.url} target="_blank" rel="noreferrer">
                       Read source
                     </a>
