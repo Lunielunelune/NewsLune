@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Article } from "../lib/api";
 import { ensureDemoUser } from "../lib/demo-user";
+import { ArticleImage } from "./article-image";
 import { BookmarkButton } from "./bookmark-button";
 
 const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
@@ -40,15 +41,12 @@ export function BookmarksShell() {
     <div className="articles-grid">
       {articles.map((article) => (
         <article className="article-card glass-panel" key={article.id}>
-          {article.imageUrl ? (
-            <Link href={`/news/${article.id}`} className="article-visual">
-              <img src={article.imageUrl} alt={article.title} loading="lazy" />
-            </Link>
-          ) : (
-            <Link href={`/news/${article.id}`} className="article-visual article-visual-fallback" aria-hidden="true">
-              <span>{article.category}</span>
-            </Link>
-          )}
+          <ArticleImage
+            href={`/news/${article.id}`}
+            src={article.imageUrl}
+            alt={article.title}
+            label={article.category}
+          />
           <div className="article-meta">
             <span>{article.category}</span>
             <span>{article.source}</span>

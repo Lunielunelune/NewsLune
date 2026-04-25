@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArticleImage } from "../../../components/article-image";
 import { BookmarkButton } from "../../../components/bookmark-button";
 import { getArticle, getNews } from "../../../lib/api";
 
@@ -61,15 +62,13 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
             </div>
           </div>
 
-          {article.imageUrl ? (
-            <div className="article-hero-visual">
-              <img src={article.imageUrl} alt={article.title} />
-            </div>
-          ) : (
-            <div className="article-hero-visual article-hero-fallback" aria-hidden="true">
-              <span>{article.category}</span>
-            </div>
-          )}
+          <ArticleImage
+            href={article.url}
+            src={article.imageUrl}
+            alt={article.title}
+            label={article.category}
+            variant="hero"
+          />
         </header>
 
         <div className="article-body-layout">
@@ -122,15 +121,12 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
           <div className="articles-grid">
             {related.map((item) => (
               <article className="article-card glass-panel" key={item.id}>
-                {item.imageUrl ? (
-                  <Link href={`/news/${item.id}`} className="article-visual">
-                    <img src={item.imageUrl} alt={item.title} loading="lazy" />
-                  </Link>
-                ) : (
-                  <Link href={`/news/${item.id}`} className="article-visual article-visual-fallback" aria-hidden="true">
-                    <span>{item.category}</span>
-                  </Link>
-                )}
+                <ArticleImage
+                  href={`/news/${item.id}`}
+                  src={item.imageUrl}
+                  alt={item.title}
+                  label={item.category}
+                />
                 <div className="article-meta">
                   <span>{item.category}</span>
                   <span>{item.source}</span>

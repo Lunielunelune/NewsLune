@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Article } from "../lib/api";
+import { ArticleImage } from "./article-image";
 import { BookmarkButton } from "./bookmark-button";
 
 interface CategorySummary {
@@ -119,19 +120,13 @@ export function FeedShell({ initialArticles, initialCursor, categories, initialC
   }
 
   function articleVisual(article: Article) {
-    if (article.imageUrl) {
-      return (
-        <Link href={`/news/${article.id}`} className="article-visual">
-          {/* We intentionally prefer source images when available to make the feed feel alive. */}
-          <img src={article.imageUrl} alt={article.title} loading="lazy" />
-        </Link>
-      );
-    }
-
     return (
-      <Link href={`/news/${article.id}`} className="article-visual article-visual-fallback" aria-hidden="true">
-        <span>{article.category}</span>
-      </Link>
+      <ArticleImage
+        href={`/news/${article.id}`}
+        src={article.imageUrl}
+        alt={article.title}
+        label={article.category}
+      />
     );
   }
 
