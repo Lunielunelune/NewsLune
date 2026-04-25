@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: app.aperture-news.example.com
+    - host: app.indexone.example.com
       http:
         paths:
           - path: /
@@ -18,7 +18,7 @@ spec:
                 name: web
                 port:
                   number: 80
-    - host: api.aperture-news.example.com
+    - host: api.indexone.example.com
       http:
         paths:
           - path: /
@@ -28,4 +28,3 @@ spec:
                 name: api-gateway
                 port:
                   number: 80
-
