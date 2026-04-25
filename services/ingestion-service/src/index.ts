@@ -118,6 +118,29 @@ function extractInlineImageUrl(text?: string) {
   return match?.[1];
 }
 
+function normalizeImageUrl(imageUrl?: string) {
+  if (!imageUrl) {
+    return undefined;
+  }
+
+  try {
+    const url = new URL(imageUrl);
+
+    if (url.hostname.includes("ichef.bbci.co.uk")) {
+      url.pathname = url.pathname
+        .replace("/standard/240/", "/standard/1024/")
+        .replace("/standard/320/", "/standard/1024/")
+        .replace("/standard/480/", "/standard/1024/")
+        .replace("/standard/624/", "/standard/1024/");
+      return url.toString();
+    }
+
+    return url.toString();
+  } catch {
+    return imageUrl;
+  }
+}
+
 function pickImageUrl(item: {
   enclosure?: { url?: string };
   contentEncoded?: string;
@@ -126,11 +149,11 @@ function pickImageUrl(item: {
   mediaThumbnail?: { $?: { url?: string } } | Array<{ $?: { url?: string } }>;
 }) {
   return (
-    item.enclosure?.url ??
-    firstMediaUrl(item.mediaContent) ??
-    firstMediaUrl(item.mediaThumbnail) ??
-    extractInlineImageUrl(item.contentEncoded) ??
-    extractInlineImageUrl(item.content)
+    normalizeImageUrl(item.enclosure?.url) ??
+    normalizeImageUrl(firstMediaUrl(item.mediaContent)) ??
+    normalizeImageUrl(firstMediaUrl(item.mediaThumbnail)) ??
+    normalizeImageUrl(extractInlineImageUrl(item.contentEncoded)) ??
+    normalizeImageUrl(extractInlineImageUrl(item.content))
   );
 }
 
@@ -159,11 +182,11 @@ function extractMetaImageUrl(html: string, pageUrl: string) {
 
     const resolved = resolveUrl(candidate, pageUrl);
     if (resolved) {
-      return resolved;
+      return normalizeImageUrl(resolved);
     }
   }
 
-  return extractInlineImageUrl(html);
+  return normalizeImageUrl(extractInlineImageUrl(html));
 }
 
 async function discoverArticleImageUrl(pageUrl: string) {
@@ -259,11 +282,22 @@ async function ingestDirectly(item: RawNewsEvent) {
     .where(eq(articles.url, item.url))
     .limit(1);
   if (existing.length > 0) {
-    if (item.imageUrl && !existing[0]?.imageUrl) {
+    const normalizedIncomingImageUrl = normalizeImageUrl(item.imageUrl);
+    const normalizedExistingImageUrl = normalizeImageUrl(existing[0]?.imageUrl ?? undefined);
+
+    if (normalizedIncomingImageUrl && normalizedIncomingImageUrl !== normalizedExistingImageUrl) {
       await db
         .update(articles)
-        .set({ imageUrl: item.imageUrl })
-        .where(and(eq(articles.id, existing[0].id), isNull(articles.imageUrl)));
+        .set({ imageUrl: normalizedIncomingImageUrl })
+        .where(
+          and(
+            eq(articles.id, existing[0].id),
+            or(
+              isNull(articles.imageUrl),
+              eq(articles.imageUrl, existing[0].imageUrl ?? "")
+            )
+          )
+        );
     }
     return;
   }
@@ -298,7 +332,7 @@ async function ingestDirectly(item: RawNewsEvent) {
       summary,
       source: item.source,
       url: item.url,
-      imageUrl: item.imageUrl,
+      imageUrl: normalizeImageUrl(item.imageUrl),
       category,
       entities: extractEntities(item.title),
       keywords: extractKeywords(articleText),
