@@ -34,7 +34,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
   return (
     <main className="article-page-shell">
       <nav className="article-nav">
-        <Link href="/">Back to Aperture</Link>
+        <Link href="/">Back to Index One</Link>
       </nav>
 
       <article className="article-page">

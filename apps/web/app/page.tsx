@@ -17,7 +17,7 @@ export default async function HomePage({
           <span className="eyebrow">Near Real-Time Global Coverage</span>
           <h1>A quieter interface for a very loud world.</h1>
           <p>
-            Aperture streams, deduplicates, enriches, and ranks breaking stories across the globe so readers
+            Index One streams, deduplicates, enriches, and ranks breaking stories across the globe so readers
             can move from signal to understanding in seconds.
           </p>
         </div>

@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Aperture News API
+  title: Index One API
   version: 1.0.0
   description: Public gateway contract for the global news aggregation platform.
 servers:
@@ -89,4 +89,3 @@ paths:
       responses:
         "200":
           description: Bookmark accepted
-

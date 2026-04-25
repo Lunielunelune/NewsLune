@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Aperture News",
-  description: "Global real-time news intelligence, ranked and delivered with low latency."
+  title: "Index One",
+  description: "Real-time global news, curated into a calmer, cleaner briefing experience by Studio by Lune."
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -14,7 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="site-nav">
           <div className="site-nav-inner">
             <Link href="/" className="site-brand">
-              Aperture News
+              Index One
             </Link>
             <nav className="site-nav-links">
               <Link href="/">Home</Link>
@@ -27,8 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="site-footer">
           <div className="site-footer-inner">
             <p>
-              Aperture News aggregates headlines, summaries, and metadata from third-party publishers. Copyright in
-              the original reporting, images, and linked source material remains with the respective publishers.
+              Index One, operated by Studio by Lune, aggregates headlines, summaries, and metadata from third-party
+              publishers. Copyright in the original reporting, images, and linked source material remains with the
+              respective publishers.
             </p>
             <nav className="site-footer-links">
               <Link href="/">Home</Link>

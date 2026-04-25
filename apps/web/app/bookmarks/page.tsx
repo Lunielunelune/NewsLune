@@ -7,9 +7,9 @@ export default function BookmarksPage() {
       <section className="subpage-hero">
         <div>
           <span className="eyebrow">Saved Stories</span>
-          <h1>My bookmarks, in one calm place.</h1>
+          <h1>Saved stories, in one calm place.</h1>
           <p>
-            Revisit the articles you saved without digging back through the homepage feed.
+            Revisit the articles you saved in Index One without digging back through the homepage feed.
           </p>
         </div>
         <Link href="/" className="subpage-link">
