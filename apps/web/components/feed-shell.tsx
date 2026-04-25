@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { Article } from "../lib/api";
 import { ArticleImage } from "./article-image";
@@ -20,6 +21,7 @@ interface FeedShellProps {
 
 const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
 const sseUrl = process.env.NEXT_PUBLIC_SSE_URL ?? "http://localhost:3001/news/stream";
+const cardDensityStorageKey = "index-one-card-columns";
 
 export function FeedShell({ initialArticles, initialCursor, categories, initialCategory }: FeedShellProps) {
   const [articles, setArticles] = useState(initialArticles);
@@ -29,6 +31,7 @@ export function FeedShell({ initialArticles, initialCursor, categories, initialC
   const [newArticlesAvailable, setNewArticlesAvailable] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [loadingFeed, setLoadingFeed] = useState(false);
+  const [cardColumns, setCardColumns] = useState<2 | 3 | 4>(3);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -45,6 +48,13 @@ export function FeedShell({ initialArticles, initialCursor, categories, initialC
     const stream = new EventSource(sseUrl);
     stream.addEventListener("news", () => setNewArticlesAvailable(true));
     return () => stream.close();
+  }, []);
+
+  useEffect(() => {
+    const savedValue = window.localStorage.getItem(cardDensityStorageKey);
+    if (savedValue === "2" || savedValue === "3" || savedValue === "4") {
+      setCardColumns(Number(savedValue) as 2 | 3 | 4);
+    }
   }, []);
 
   useEffect(() => {
@@ -130,6 +140,11 @@ export function FeedShell({ initialArticles, initialCursor, categories, initialC
     );
   }
 
+  function updateCardColumns(nextValue: 2 | 3 | 4) {
+    setCardColumns(nextValue);
+    window.localStorage.setItem(cardDensityStorageKey, String(nextValue));
+  }
+
   return (
     <section className="feed-layout">
       <aside className="sidebar glass-panel">
@@ -167,16 +182,30 @@ export function FeedShell({ initialArticles, initialCursor, categories, initialC
               void runSearch(nextQuery);
             }}
           />
-          {newArticlesAvailable ? (
-            <button className="new-indicator" onClick={() => void refreshFeed()}>
-              New articles available
-            </button>
-          ) : (
-            <span className="status-text">Live</span>
-          )}
+          <div className="toolbar-actions">
+            <div className="density-control" aria-label="Card size">
+              {[2, 3, 4].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={cardColumns === value ? "density-chip active" : "density-chip"}
+                  onClick={() => updateCardColumns(value as 2 | 3 | 4)}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+            {newArticlesAvailable ? (
+              <button className="new-indicator" onClick={() => void refreshFeed()}>
+                New articles available
+              </button>
+            ) : (
+              <span className="status-text">Live</span>
+            )}
+          </div>
         </div>
 
-        <div className="articles-grid">
+        <div className="articles-grid" style={{ "--card-columns": cardColumns } as CSSProperties}>
           {articles.map((article) => (
             <article className="article-card glass-panel" key={article.id}>
               {articleVisual(article)}

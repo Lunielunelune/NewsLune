@@ -233,6 +233,35 @@ input {
   justify-content: space-between;
 }
 
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.density-control {
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(120, 128, 140, 0.08);
+}
+
+.density-chip {
+  border: 0;
+  border-radius: 999px;
+  min-width: 36px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.density-chip.active {
+  background: var(--accent);
+  color: white;
+}
+
 .search-input {
   flex: 1;
   border: 0;
@@ -243,8 +272,9 @@ input {
 }
 
 .articles-grid {
+  --card-columns: 2;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--card-columns), minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -601,6 +631,12 @@ input {
   .article-hero,
   .article-body-layout {
     grid-template-columns: 1fr;
+  }
+
+  .toolbar,
+  .toolbar-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .hero {
