@@ -1,6 +1,6 @@
-# Global News Aggregation Platform
+# Index One
 
-Production-oriented distributed news platform built as a TypeScript monorepo with stateless microservices, Kafka-driven ingestion, PostgreSQL persistence, Elasticsearch search, Redis caching, S3-compatible media storage, and a Next.js frontend.
+Production-oriented distributed news platform for Index One, built as a TypeScript monorepo with stateless microservices, Kafka-driven ingestion, PostgreSQL persistence, Elasticsearch search, Redis caching, S3-compatible media storage, and a Next.js frontend operated by Studio by Lune.
 
 ## Architecture
 

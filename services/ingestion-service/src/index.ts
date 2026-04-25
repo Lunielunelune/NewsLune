@@ -170,7 +170,7 @@ async function discoverArticleImageUrl(pageUrl: string) {
   try {
     const response = await fetch(pageUrl, {
       headers: {
-        "user-agent": "Mozilla/5.0 (compatible; ApertureNewsBot/1.0; +https://newsweb-production-b624.up.railway.app)"
+        "user-agent": "Mozilla/5.0 (compatible; IndexOneBot/1.0; +https://newsweb-production-b624.up.railway.app)"
       }
     });
 
@@ -331,7 +331,14 @@ async function cleanupNonReadableSeedData() {
         eq(articles.source, "Aperture Health"),
         eq(articles.source, "Aperture World"),
         eq(articles.source, "Aperture Culture"),
-        like(articles.url, "https://aperture-news.example.com/%")
+        eq(articles.source, "Index One Markets Desk"),
+        eq(articles.source, "Index One Climate Desk"),
+        eq(articles.source, "Index One Finance"),
+        eq(articles.source, "Index One Health"),
+        eq(articles.source, "Index One World"),
+        eq(articles.source, "Index One Culture"),
+        like(articles.url, "https://aperture-news.example.com/%"),
+        like(articles.url, "https://indexone.example.com/%")
       )
     );
 }
